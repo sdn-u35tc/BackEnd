@@ -178,6 +178,7 @@ def chooseBestPath():
         }
         graph_bestPath["links"].append(link)
         i = i+1
+        
     return graph_bestPath
 
 def addSingnalFlow(src_ip, dst_ip, deviceId, sw_port_src, sw_port_dst):
@@ -222,7 +223,6 @@ def addSingnalFlow(src_ip, dst_ip, deviceId, sw_port_src, sw_port_dst):
                             "type": "IN_PORT",
                             "port": sw_port_src
                             }
-
                 ]
             }
         }
@@ -240,12 +240,18 @@ def addFlows():
     src_ip = srcHost
     dst_ip = desHost
     i = 1
-    print(path)
+    
     while(i+1<len(path)-1):
-        statusCode = addSingnalFlow(src_ip, dst_ip, path[i][:-2], path[i], path[i+1])
-        if(statusCode != 200):
-            addSingnalFlow(src_ip, dst_ip, path[i][:-2], path[i], path[i+1])
+        statusCode = addSingnalFlow(src_ip, dst_ip, path[i][:-2], path[i][-1:], path[i+1][-1:])
         i = i+1
+
+    j = len(path)-2
+    while(j>1):
+        statusCode = addSingnalFlow(dst_ip, src_ip, path[j][:-2], path[j][-1:], path[j-1][-1:])
+        print(path[j])
+        print(path[j-1])
+        j = j-1
+
     return True
 
 def dropSingnalFlow(deviceId):
@@ -301,17 +307,17 @@ def getDevicesNum():
 
 def dropFlows():
 
-    for i in range(getDevicesNum()):
+    deviceNum = getDevicesNum()
+    for i in range(1,deviceNum+1):
         if(i<10):
             id_device = "of:000000000000000" + (hex(int(str(i), 10))[2:])
         else:
             id_device = "of:00000000000000" + (hex(int(str(i), 10))[2:])
-    i = 0
-    while(i<getDevicesNum()):
+        
+    j = 0
+    while(j<deviceNum):
         statusCode = dropSingnalFlow(id_device)
-        if(statusCode != 200):
-            dropSingnalFlow(id_device)
-        i = i+1
+        j = j+1
     return True
 
 # 测试
@@ -320,8 +326,8 @@ if __name__ == "__main__":
     # graph_show = basicTopoDisplay()
     # print(json.dumps(graph_path, indent=2))
     # print(json.dumps(graph_show, indent=2))
-    # addFlows()
+    # print(chooseBestPath())
+    # print(getDevicesNum())
     dropFlows()
     # print(get_host(controller_ip))
-    
     # print(for_path())

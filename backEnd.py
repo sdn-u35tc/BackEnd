@@ -14,13 +14,12 @@ def getBasicTopo():
 @app.route('/bestpath', methods=['get', 'post'])
 @cross_origin()
 def choice():
+    
     bestPathGraph = basicShell.chooseBestPath()
-    status1 = basicShell.dropFlows()
-    # status2 = basicShell.addFlows()
-    if(status1): # and status2
-        return bestPathGraph
-    else:
-        return {'status':'Failed'}
+    basicShell.dropFlows()
+    basicShell.addFlows()
+
+    return bestPathGraph
 
 
 if __name__ == '__main__':
