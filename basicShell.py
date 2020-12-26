@@ -1,8 +1,7 @@
 import requests
 import json
 import networkx as nx
-from flask import Flask, render_template, request
-from flask_cors import CORS, cross_origin
+from flask import request
 from requests import auth
 from requests.auth import HTTPBasicAuth
 
@@ -16,7 +15,7 @@ auth = HTTPBasicAuth("karaf", "karaf")
 
 
 # 获取时延信息，返回json
-def get_delay(controller_ip):
+def get_delay():
     delay_url = "http://{}:8181/onos/get-link-delay/GetDelay".format(
         controller_ip)
     headers = {
@@ -29,7 +28,7 @@ def get_delay(controller_ip):
 
 
 # 获取端口关系的拓扑
-def get_graph(controller_ip):
+def get_graph():
     graph_url = "http://{}:8181/onos/choice-best-path/graph".format(
         controller_ip)
     headers = {
@@ -42,7 +41,7 @@ def get_graph(controller_ip):
 
 
 # 获取主机和交换机关系的拓扑
-def get_host(controller_ip):
+def get_host():
     host_url = "http://{}:8181/onos/device-and-host/devicehost".format(
         controller_ip)
     headers = {
@@ -56,8 +55,8 @@ def get_host(controller_ip):
 
 # 生成选路所用的拓扑
 def for_path():
-    status1, de_resp = get_delay(controller_ip)
-    status2, gr_resp = get_graph(controller_ip)
+    status1, de_resp = get_delay()
+    status2, gr_resp = get_graph()
     if status1 == 200 and status2 == 200:
         delay_info = json.loads(de_resp)
         graph_info = json.loads(gr_resp)
@@ -85,9 +84,9 @@ def for_path():
 
 # 生成前端所需的拓扑格式
 def basicTopoDisplay():
-    status1, de_resp = get_delay(controller_ip)
+    status1, de_resp = get_delay()
 
-    status3, ho_resp = get_host(controller_ip)
+    status3, ho_resp = get_host()
     graph_show = {
         "nodes": [],
         "links": []
@@ -120,6 +119,8 @@ def basicTopoDisplay():
 
     return graph_show
 
+
+# 
 def chooseBestPath():
     
     
@@ -181,13 +182,14 @@ def chooseBestPath():
         
     return graph_bestPath
 
+
 def addSingnalFlow(src_ip, dst_ip, deviceId, sw_port_src, sw_port_dst):
         headers = {
             "Accept": "application/json",
             "Content-Type": "application/json",
         }
 
-        params = {"appId": "myApp"}
+        params = {"appId": "choicepath"}
 
         data = {
             "priority": 12,
@@ -235,90 +237,31 @@ def addSingnalFlow(src_ip, dst_ip, deviceId, sw_port_src, sw_port_dst):
 
         return resp.status_code
 
+
 def addFlows():
-    chooseBestPath()
+    
     src_ip = srcHost
     dst_ip = desHost
-    i = 1
-    
-    while(i+1<len(path)-1):
-        statusCode = addSingnalFlow(src_ip, dst_ip, path[i][:-2], path[i][-1:], path[i+1][-1:])
-        i = i+1
 
-    j = len(path)-2
-    while(j>1):
-        statusCode = addSingnalFlow(dst_ip, src_ip, path[j][:-2], path[j][-1:], path[j-1][-1:])
-        print(path[j])
-        print(path[j-1])
-        j = j-1
+    for i in range(1, len(path)-1, 2):
+      
+        if i < len(path) - 1:
+            addSingnalFlow(src_ip, dst_ip, path[i][:-2], path[i][-1:], path[i + 1][-1:])
+            addSingnalFlow(dst_ip, src_ip, path[i + 1][:-2], path[i + 1][-1:], path[i][-1:])
 
     return True
 
-def dropSingnalFlow(deviceId):
-    headers = {
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-    }
 
-    params = {"appId": 'myApp'}
+def deleteFlows():
+    headers = {"Accept": "application/json"}
+    appId = "myApp"
+    
+    delete_device_url = 'http://{}:8181/onos/v1/flows/application/{}'.format(controller_ip, appId)
 
-    data = {
-        "priority": 10,
-        "timeout": 0,
-        "isPermanent": True,
-        "deviceId": deviceId,
-        "treatment": {
-            "instructions": [
-
-            ]
-        },
-        "selector": {
-            "criteria": [
-                {
-                    "type": "ETH_TYPE",
-                    "ethType": "0x0800"
-                },
-
-            ]
-        }
-    }
-
-    add_flows_url = "http://{}:8181/onos/v1/flows/{}".format(controller_ip, deviceId)
-
-    resp = requests.post(url=add_flows_url, params=params, headers=headers, auth=auth, data=json.dumps(data))
+    resp = requests.delete(url=delete_device_url, headers=headers, auth=auth)
 
     return resp.status_code
-            
 
-def getDevicesNum():
-    
-    host_url = "http://{}:8181/onos/v1/devices".format(
-        controller_ip)
-    headers = {
-        "Accept": "application/json"
-    }
-    resp = requests.get(url=host_url, headers=headers, auth=auth)
-
-    hostData = json.loads(resp.content)
-    num = len(hostData['devices'])
-
-    return num
-
-
-def dropFlows():
-
-    deviceNum = getDevicesNum()
-    for i in range(1,deviceNum+1):
-        if(i<10):
-            id_device = "of:000000000000000" + (hex(int(str(i), 10))[2:])
-        else:
-            id_device = "of:00000000000000" + (hex(int(str(i), 10))[2:])
-        
-    j = 0
-    while(j<deviceNum):
-        statusCode = dropSingnalFlow(id_device)
-        j = j+1
-    return True
 
 # 测试
 if __name__ == "__main__":
@@ -328,6 +271,6 @@ if __name__ == "__main__":
     # print(json.dumps(graph_show, indent=2))
     # print(chooseBestPath())
     # print(getDevicesNum())
-    dropFlows()
+    print(deleteFlows())
     # print(get_host(controller_ip))
     # print(for_path())
