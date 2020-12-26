@@ -265,12 +265,5 @@ def deleteFlows():
 
 # 测试
 if __name__ == "__main__":
-    # graph_path = for_path()
-    # graph_show = basicTopoDisplay()
-    # print(json.dumps(graph_path, indent=2))
-    # print(json.dumps(graph_show, indent=2))
-    # print(chooseBestPath())
     # print(getDevicesNum())
     print(deleteFlows())
-    # print(get_host(controller_ip))
-    # print(for_path())
