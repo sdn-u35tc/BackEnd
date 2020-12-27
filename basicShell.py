@@ -14,7 +14,7 @@ controller_ip = "127.0.0.1"
 auth = HTTPBasicAuth("karaf", "karaf")
 
 
-# 获取时延信息，返回json
+# 获取时延信息
 def get_delay():
     delay_url = "http://{}:8181/onos/get-link-delay/GetDelay".format(
         controller_ip)
@@ -120,7 +120,7 @@ def basicTopoDisplay():
     return graph_show
 
 
-# 
+# 利用获取的时延信息生成最优路径
 def chooseBestPath():
     
     
@@ -183,6 +183,7 @@ def chooseBestPath():
     return graph_bestPath
 
 
+# 为单个交换机下发流表
 def addSingnalFlow(src_ip, dst_ip, deviceId, sw_port_src, sw_port_dst):
         headers = {
             "Accept": "application/json",
@@ -238,6 +239,7 @@ def addSingnalFlow(src_ip, dst_ip, deviceId, sw_port_src, sw_port_dst):
         return resp.status_code
 
 
+# 为最优路径上所有交换机下发流表
 def addFlows():
     
     src_ip = srcHost
@@ -252,6 +254,7 @@ def addFlows():
     return True
 
 
+# 删除之前下发的流表
 def deleteFlows():
     headers = {"Accept": "application/json"}
     appId = "myApp"
@@ -265,5 +268,7 @@ def deleteFlows():
 
 # 测试
 if __name__ == "__main__":
+    
     # print(getDevicesNum())
     print(deleteFlows())
+    
